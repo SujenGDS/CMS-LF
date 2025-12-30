@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import api from "../lib/axios";
 
 interface Post {
   _id: string;
@@ -22,7 +23,7 @@ const SinglePost: React.FC = () => {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const res = await axios.get<Post>(`http://localhost:5000/posts/${id}`);
+        const res = await api.get<Post>(`/posts/${id}`);
         setPost(res.data);
       } catch (err) {
         console.error("Error fetching post", err);

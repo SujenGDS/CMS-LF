@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
+import api from "../lib/axios";
 
 interface Post {
   _id: string;
@@ -24,7 +25,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await axios.get<Post[]>("http://localhost:5000/posts");
+        const res = await api.get<Post[]>("/posts");
 
         const sortedPosts = res.data.sort(
           (a, b) =>

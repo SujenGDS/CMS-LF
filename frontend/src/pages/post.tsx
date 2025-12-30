@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import api from "../lib/axios";
 
 const Post: React.FC = () => {
   const [title, setTitle] = useState("");
@@ -22,21 +23,13 @@ const Post: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
 
-      await axios.post(
-        "http://localhost:5000/posts",
-        {
-          title,
-          body,
-          // category,
-          image,
-          tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await api.post("/posts", {
+        title,
+        body,
+        // category,
+        image,
+        tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
+      });
 
       navigate("/my-posts");
     } catch (err: any) {
@@ -54,13 +47,9 @@ const Post: React.FC = () => {
     formData.append("image", file);
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/upload/image",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+      const res = await api.post("/upload/image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       console.log(res.data.url);
       setImage(res.data.url); // set the image URL in your post
     } catch (err) {
