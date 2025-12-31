@@ -51,7 +51,7 @@ const Post: React.FC = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log(res.data.url);
-      setImage(res.data.url); // set the image URL in your post
+      setImage(res.data.url);
     } catch (err) {
       console.error("Upload failed", err);
     }
@@ -113,7 +113,7 @@ const Post: React.FC = () => {
                   <input
                     type="file"
                     className="form-control"
-                    accept="image/png, image/jpeg" // restrict to jpg/png
+                    accept="image/png, image/jpeg"
                     onChange={handleImageChange}
                   />
                   {image && (

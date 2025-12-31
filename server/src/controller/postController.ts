@@ -69,7 +69,6 @@ export const deletePost = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    // 🔒 AUTHOR CHECK
     const userId = (req as any).user.id;
     const user = await User.findById(userId);
     if (!user) {
@@ -113,8 +112,6 @@ export const getMyPosts = async (req: Request, res: Response) => {
 };
 
 // Update post
-
-// Update post
 export const updatePost = async (req: Request, res: Response) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -123,7 +120,6 @@ export const updatePost = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    // 🔒 AUTHOR CHECK
     const userId = (req as any).user.id;
     const user = await User.findById(userId);
     if (!user) {
