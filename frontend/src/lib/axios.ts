@@ -6,7 +6,6 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor - add JWT token
 api.interceptors.request.use((config) => {
   const accessToken = localStorage.getItem("token");
   if (accessToken) {

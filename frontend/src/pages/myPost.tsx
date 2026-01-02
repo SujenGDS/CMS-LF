@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import api from "../lib/axios";
+import { Navigate, useNavigate } from "react-router-dom";
 
 interface Post {
-  _id: string;
+  id: number;
   title: string;
   body: string;
-  category?: string;
+  author: string;
   image?: string;
   tags?: string[];
+  created_at: string;
 }
 
 const MyPost: React.FC = () => {
@@ -21,14 +23,15 @@ const MyPost: React.FC = () => {
   const [editBody, setEditBody] = useState("");
   const [editImage, setEditImage] = useState("");
   const [editTags, setEditTags] = useState("");
-
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  const navigate = useNavigate();
 
   const fetchMyPosts = async () => {
     try {
-      const res = await api.get("/posts/myPosts");
+      const res = await api.get<Post[]>("/posts/myPosts");
       setPosts(res.data);
-    } catch (err) {
+    } catch {
       setError("Failed to load posts");
     } finally {
       setLoading(false);
@@ -39,12 +42,12 @@ const MyPost: React.FC = () => {
     fetchMyPosts();
   }, []);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm("Delete this post?")) return;
 
     try {
       await api.delete(`/posts/${id}`);
-      setPosts((prev) => prev.filter((p) => p._id !== id));
+      setPosts((prev) => prev.filter((p) => p.id !== id));
     } catch {
       alert("Delete failed");
     }
@@ -61,14 +64,12 @@ const MyPost: React.FC = () => {
   const handleImageUpload = async (file: File) => {
     try {
       setUploadingImage(true);
-
       const formData = new FormData();
       formData.append("image", file);
 
       const res = await api.post("/upload/image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-
       setEditImage(res.data.url);
     } catch {
       alert("Image upload failed");
@@ -79,9 +80,8 @@ const MyPost: React.FC = () => {
 
   const handleUpdate = async () => {
     if (!editingPost) return;
-
     try {
-      await api.put(`/posts/${editingPost._id}`, {
+      await api.put(`/posts/${editingPost.id}`, {
         title: editTitle,
         body: editBody,
         image: editImage,
@@ -90,7 +90,6 @@ const MyPost: React.FC = () => {
           .map((t) => t.trim())
           .filter(Boolean),
       });
-
       setEditingPost(null);
       fetchMyPosts();
     } catch {
@@ -107,43 +106,79 @@ const MyPost: React.FC = () => {
 
         {loading && <p>Loading...</p>}
         {error && <p className="text-danger">{error}</p>}
-
         {!loading && posts.length === 0 && (
           <p>You haven’t created any posts yet.</p>
         )}
 
-        {posts.map((post) => (
-          <div className="card mb-3 shadow-sm" key={post._id}>
-            <div className="card-body">
-              <h5>{post.title}</h5>
-              <p>{post.body}</p>
+        <div className="row">
+          {posts.map((post) => (
+            <div
+              key={post.id}
+              className="col-md-6 mb-4"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate(`/posts/${post.id}`)}
+            >
+              <div className="card h-100 shadow-sm rounded-4 hover-shadow">
+                {post.image && (
+                  <img
+                    src={post.image}
+                    alt={post.title}
+                    className="card-img-top rounded-top-4"
+                    style={{ height: 200, objectFit: "cover" }}
+                  />
+                )}
 
-              {post.image && (
-                <img
-                  src={post.image}
-                  alt="post"
-                  className="img-fluid rounded mb-2"
-                  style={{ maxHeight: 200 }}
-                />
-              )}
+                <div className="card-body d-flex flex-column">
+                  <h5>{post.title}</h5>
+                  <p className="text-muted flex-grow-1">
+                    {post.body.length > 100
+                      ? post.body.slice(0, 100) + "..."
+                      : post.body}
+                  </p>
 
-              <div className="mt-3">
-                <button
-                  className="btn btn-sm btn-outline-primary me-2"
-                  onClick={() => openEdit(post)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-sm btn-outline-danger"
-                  onClick={() => handleDelete(post._id)}
-                >
-                  Delete
-                </button>
+                  {post.tags && post.tags.length > 0 && (
+                    <div className="mb-2">
+                      {post.tags.map((tag, i) => (
+                        <span
+                          key={i}
+                          className="badge rounded-pill bg-primary bg-opacity-10 text-primary me-1"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <small className="text-muted mb-2">
+                    Created: {new Date(post.created_at).toLocaleDateString()}
+                  </small>
+
+                  <div className="mt-auto d-flex gap-2">
+                    <button
+                      className="btn btn-sm btn-outline-primary flex-grow-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEdit(post);
+                      }}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      className="btn btn-sm btn-outline-danger flex-grow-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(post.id);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
         {editingPost && (
           <div className="modal d-block" style={{ background: "#00000088" }}>
@@ -174,16 +209,13 @@ const MyPost: React.FC = () => {
                   />
 
                   <label className="form-label fw-semibold">Change Image</label>
-
                   <input
                     type="file"
                     accept="image/*"
                     className="form-control mb-2"
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) {
-                        handleImageUpload(e.target.files[0]);
-                      }
-                    }}
+                    onChange={(e) =>
+                      e.target.files && handleImageUpload(e.target.files[0])
+                    }
                   />
 
                   {uploadingImage && (
@@ -227,6 +259,15 @@ const MyPost: React.FC = () => {
           </div>
         )}
       </div>
+
+      <style>
+        {`
+          .hover-shadow:hover {
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+            transition: box-shadow 0.3s ease-in-out;
+          }
+        `}
+      </style>
     </>
   );
 };
