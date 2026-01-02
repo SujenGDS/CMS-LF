@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 const SECRET_KEY = process.env.JWT_SECRET || "mysecretkey";
 
 interface JwtPayload {
-  id: string;
+  id: number;
   iat?: number;
   exp?: number;
 }
@@ -27,7 +27,7 @@ export const authMiddleware = (
     console.log("Token decoded:", decoded);
 
     (req as any).user = {
-      id: decoded.id,
+      id: decoded.id, // ✅ now INT
     };
 
     next();

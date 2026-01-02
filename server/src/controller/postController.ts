@@ -1,35 +1,26 @@
 import { Request, Response } from "express";
-import Post from "../models/PostModel";
-import User from "../models/userModel";
+import pool from "../config/db";
 
-// Create a new content
 export const createPost = async (req: Request, res: Response) => {
   try {
-    const { title, body, author, image, tags } = req.body;
+    const { title, body, image, tags } = req.body;
+    const userId = (req as any).user.id;
 
     if (!title || !body) {
-      return res.status(400).json({ message: "Missing required fields" });
+      return res.status(400).json({ message: "Title and body are required" });
     }
 
-    const user = await User.findById((req as any).user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const post = await Post.create({
-      title,
-      body,
-      author: user.name,
-      // category,
-      tags,
-      image,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    const [result] = await pool.query(
+      `
+      INSERT INTO posts (title, body, image, tags, author_id)
+      VALUES (?, ?, ?, ?, ?)
+      `,
+      [title, body, image || null, JSON.stringify(tags || []), userId]
+    );
 
     res.status(201).json({
-      message: "post created successfully",
-      post,
+      message: "Post created successfully",
+      postId: (result as any).insertId,
     });
   } catch (err) {
     console.error(err);
@@ -37,51 +28,72 @@ export const createPost = async (req: Request, res: Response) => {
   }
 };
 
-// Get all posts
 export const getAllPosts = async (_req: Request, res: Response) => {
   try {
-    const posts = await Post.find();
-    res.status(200).json(posts);
+    const [rows] = await pool.query(`
+      SELECT 
+        posts.id,
+        posts.title,
+        posts.body,
+        posts.image,
+        posts.tags,
+        posts.created_at,
+        users.name AS author
+      FROM posts
+      JOIN users ON users.id = posts.author_id
+      ORDER BY posts.created_at DESC
+    `);
+
+    res.status(200).json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Get single post by ID
 export const getPostById = async (req: Request, res: Response) => {
   try {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: "Post not found" });
+    const [rows]: any = await pool.query(
+      `
+      SELECT 
+        posts.id,
+        posts.title,
+        posts.body,
+        posts.image,
+        posts.tags,
+        posts.created_at,
+        users.name AS author
+      FROM posts
+      JOIN users ON users.id = posts.author_id
+      WHERE posts.id = ?
+      `,
+      [req.params.id]
+    );
 
-    res.status(200).json(post);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Delete post
-export const deletePost = async (req: Request, res: Response) => {
-  try {
-    const post = await Post.findById(req.params.id);
-
-    if (!post) {
+    if (rows.length === 0) {
       return res.status(404).json({ message: "Post not found" });
     }
 
+    res.status(200).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const deletePost = async (req: Request, res: Response) => {
+  try {
+    const postId = req.params.id;
     const userId = (req as any).user.id;
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
 
-    if (post.author !== user.name) {
-      return res
-        .status(403)
-        .json({ message: "You are not allowed to delete this post" });
-    }
+    const [result]: any = await pool.query(
+      `DELETE FROM posts WHERE id = ? AND author_id = ?`,
+      [postId, userId]
+    );
 
-    await post.deleteOne();
+    if (result.affectedRows === 0) {
+      return res.status(403).json({ message: "Not allowed or post not found" });
+    }
 
     res.status(200).json({ message: "Post deleted successfully" });
   } catch (err) {
@@ -90,63 +102,47 @@ export const deletePost = async (req: Request, res: Response) => {
   }
 };
 
-// Get posts by author (My Posts)
 export const getMyPosts = async (req: Request, res: Response) => {
   try {
-    const user = await User.findById((req as any).user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const userId = (req as any).user.id;
 
-    if (!user) {
-      return res.status(400).json({ message: "Author is required" });
-    }
+    const [rows] = await pool.query(
+      `
+      SELECT *
+      FROM posts
+      WHERE author_id = ?
+      ORDER BY created_at DESC
+      `,
+      [userId]
+    );
 
-    const posts = await Post.find({ author: user.name });
-
-    res.status(200).json(posts);
+    res.status(200).json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Update post
 export const updatePost = async (req: Request, res: Response) => {
   try {
-    const post = await Post.findById(req.params.id);
-
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
-
+    const postId = req.params.id;
     const userId = (req as any).user.id;
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    const { title, body, image, tags } = req.body;
+
+    const [result]: any = await pool.query(
+      `
+      UPDATE posts
+      SET title = ?, body = ?, image = ?, tags = ?
+      WHERE id = ? AND author_id = ?
+      `,
+      [title, body, image || null, JSON.stringify(tags || []), postId, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(403).json({ message: "Not allowed or post not found" });
     }
 
-    if (post.author !== user.name) {
-      return res
-        .status(403)
-        .json({ message: "You are not allowed to edit this post" });
-    }
-
-    const { title, body, category, image, tags } = req.body;
-
-    post.title = title ?? post.title;
-    post.body = body ?? post.body;
-    // post.category = category ?? post.category;
-    post.image = image ?? post.image;
-    post.tags = tags ?? post.tags;
-    post.updatedAt = new Date();
-
-    await post.save();
-
-    res.status(200).json({
-      message: "Post updated successfully",
-      post,
-    });
+    res.status(200).json({ message: "Post updated successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
