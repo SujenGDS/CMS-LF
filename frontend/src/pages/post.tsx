@@ -47,7 +47,7 @@ const Post: React.FC = () => {
     formData.append("image", file);
 
     try {
-      const res = await api.post("/upload/image", formData, {
+      const res = await api.post("/posts/upload-image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log(res.data.url);

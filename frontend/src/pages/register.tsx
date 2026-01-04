@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import api from "../lib/axios";
+import { toast } from "react-toastify";
 
 const Register: React.FC = () => {
   const [name, setName] = useState("");
@@ -24,9 +25,13 @@ const Register: React.FC = () => {
         password,
       });
 
+      toast.success("Registration successful! Please login.");
+
       navigate("/login");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Registration failed");
+      const message = err.response?.data?.message || "Registration failed";
+      toast.error(message);
+      setError(message);
     } finally {
       setLoading(false);
     }

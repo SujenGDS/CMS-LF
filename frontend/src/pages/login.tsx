@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "react-toastify";
+import api from "../lib/axios";
 
 interface LoginProps {
   setIsLoggedIn?: (value: boolean) => void;
@@ -18,10 +20,11 @@ const Login: React.FC<LoginProps> = ({ setIsLoggedIn }) => {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/auth/login", {
+      const response = await api.post("/auth/login", {
         email,
         password,
       });
+      toast.success("Login successful");
 
       const { token, user } = response.data;
 
@@ -32,6 +35,7 @@ const Login: React.FC<LoginProps> = ({ setIsLoggedIn }) => {
       navigate("/home");
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed");
+      toast.error("Login failed");
     }
   };
 
@@ -39,7 +43,6 @@ const Login: React.FC<LoginProps> = ({ setIsLoggedIn }) => {
     <div className="min-vh-100 d-flex align-items-center bg-light">
       <div className="container">
         <div className="row justify-content-center shadow-lg rounded overflow-hidden bg-white">
-         
           <div className="col-md-6 d-none d-md-flex align-items-center justify-content-center bg-primary bg-opacity-10">
             <img
               src="cms.png"
@@ -49,7 +52,6 @@ const Login: React.FC<LoginProps> = ({ setIsLoggedIn }) => {
             />
           </div>
 
-    
           <div className="col-md-6 p-5">
             <h3 className="fw-bold mb-2">Welcome Back </h3>
             <p className="text-muted mb-4">Login to continue</p>

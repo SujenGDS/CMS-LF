@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import api from "../lib/axios";
 import { Navigate, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 interface Post {
   id: number;
@@ -25,11 +26,14 @@ const MyPost: React.FC = () => {
   const [editTags, setEditTags] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  const [deletePostId, setDeletePostId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const navigate = useNavigate();
 
   const fetchMyPosts = async () => {
     try {
-      const res = await api.get<Post[]>("/posts/myPosts");
+      const res = await api.get<Post[]>("/posts/my-posts");
       setPosts(res.data);
     } catch {
       setError("Failed to load posts");
@@ -42,14 +46,20 @@ const MyPost: React.FC = () => {
     fetchMyPosts();
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Delete this post?")) return;
-
+  const handleDelete = async (deletePostId: number) => {
+    if (!deletePostId) return;
+    const id = deletePostId;
+    setDeletePostId(null);
+    setDeleting(true);
     try {
+      setDeleting(true);
       await api.delete(`/posts/${id}`);
       setPosts((prev) => prev.filter((p) => p.id !== id));
+      toast.success("Post deleted successfully");
     } catch {
       alert("Delete failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -67,7 +77,7 @@ const MyPost: React.FC = () => {
       const formData = new FormData();
       formData.append("image", file);
 
-      const res = await api.post("/upload/image", formData, {
+      const res = await api.post("/posts/upload-image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setEditImage(res.data.url);
@@ -92,6 +102,7 @@ const MyPost: React.FC = () => {
       });
       setEditingPost(null);
       fetchMyPosts();
+      toast.success("Post updated successfully");
     } catch {
       alert("Update failed");
     }
@@ -168,7 +179,7 @@ const MyPost: React.FC = () => {
                       className="btn btn-sm btn-outline-danger flex-grow-1"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(post.id);
+                        setDeletePostId(post.id);
                       }}
                     >
                       Delete
@@ -252,6 +263,48 @@ const MyPost: React.FC = () => {
                     disabled={uploadingImage}
                   >
                     {uploadingImage ? "Uploading..." : "Save Changes"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {deletePostId && (
+          <div className="modal d-block" style={{ background: "#00000088" }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content rounded-4 shadow">
+                <div className="modal-header border-0">
+                  <h5 className="modal-title text-danger">Delete Post</h5>
+                  <button
+                    className="btn-close"
+                    onClick={() => setDeletePostId(null)}
+                  />
+                </div>
+
+                <div className="modal-body text-center">
+                  <p className="mb-0">
+                    Are you sure you want to delete this post?
+                    <br />
+                    <strong>This action cannot be undone.</strong>
+                  </p>
+                </div>
+
+                <div className="modal-footer border-0">
+                  <button
+                    className="btn btn-outline-secondary"
+                    onClick={() => setDeletePostId(null)}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    className="btn btn-danger"
+                    onClick={() => deletePostId && handleDelete(deletePostId)}
+                    disabled={deleting}
+                  >
+                    {deleting ? "Deleting..." : "Delete"}
                   </button>
                 </div>
               </div>

@@ -5,6 +5,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import Login from "./pages/login";
 import Home from "./pages/home";
@@ -30,76 +32,87 @@ const App: React.FC = () => {
   };
 
   return (
-    <Router>
-      <Routes>
-        {/* Login Page */}
-        <Route
-          path="/login"
-          element={
-            isLoggedIn ? (
-              <Navigate to="/home" />
-            ) : (
-              <Login setIsLoggedIn={setIsLoggedIn} />
-            )
-          }
-        />
+    <>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        theme="light"
+      />
+      <Router>
+        <Routes>
+          {/* Login Page */}
+          <Route
+            path="/login"
+            element={
+              isLoggedIn ? (
+                <Navigate to="/home" />
+              ) : (
+                <Login setIsLoggedIn={setIsLoggedIn} />
+              )
+            }
+          />
 
-        {/* Home Page - Protected */}
-        <Route
-          path="/home"
-          element={
-            <PrivateRoute>
-              <Home />
-            </PrivateRoute>
-          }
-        />
+          {/* Home Page - Protected */}
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute>
+                <Home />
+              </PrivateRoute>
+            }
+          />
 
-        {/* MyPosts Page - Protected */}
-        <Route
-          path="/myPosts"
-          element={
-            <PrivateRoute>
-              <MyPost />
-            </PrivateRoute>
-          }
-        />
+          {/* MyPosts Page - Protected */}
+          <Route
+            path="/myPosts"
+            element={
+              <PrivateRoute>
+                <MyPost />
+              </PrivateRoute>
+            }
+          />
 
-        <Route
-          path="/post"
-          element={
-            <PrivateRoute>
-              <Post />
-            </PrivateRoute>
-          }
-        />
+          <Route
+            path="/post"
+            element={
+              <PrivateRoute>
+                <Post />
+              </PrivateRoute>
+            }
+          />
 
-        <Route
-          path="/posts/:id"
-          element={
-            <PrivateRoute>
-              <SinglePost />
-            </PrivateRoute>
-          }
-        />
+          <Route
+            path="/posts/:id"
+            element={
+              <PrivateRoute>
+                <SinglePost />
+              </PrivateRoute>
+            }
+          />
 
-        <Route
-          path="/profile"
-          element={
-            <PrivateRoute>
-              <Profile />
-            </PrivateRoute>
-          }
-        />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
 
-        <Route
-          path="/register"
-          element={isLoggedIn ? <Navigate to="/login" /> : <Register />}
-        />
+          <Route
+            path="/register"
+            element={isLoggedIn ? <Navigate to="/login" /> : <Register />}
+          />
 
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
-    </Router>
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
+      </Router>
+    </>
   );
 };
 
