@@ -1,178 +1,115 @@
 import { Request, Response } from "express";
-import pool from "../config/db";
-import cloudinary from "../config/cloudinary";
+import { PostService } from "../services/postService";
 
-// Create a new post
-export const createPost = async (req: Request, res: Response) => {
-  try {
-    const { title, body, image, tags } = req.body;
-    const userId = (req as any).user.id;
+export class PostController {
+  private postService: PostService;
 
-    if (!title || !body) {
-      return res.status(400).json({ message: "Title and body are required" });
+  constructor() {
+    this.postService = new PostService();
+  }
+
+  createPost = async (req: Request, res: Response) => {
+    try {
+      const { title, body, image, tags } = req.body;
+      const userId = req.user!.id;
+
+      const postId = await this.postService.createPost({
+        title,
+        body,
+        image,
+        tags,
+        author_id: userId,
+      });
+
+      res.status(201).json({
+        message: "Post created successfully",
+        postId,
+      });
+    } catch (err: any) {
+      console.error(err);
+      res.status(400).json({ message: err.message || "Server error" });
     }
+  };
 
-    const [result] = await pool.query(
-      `
-      INSERT INTO posts (title, body, image, tags, author_id)
-      VALUES (?, ?, ?, ?, ?)
-      `,
-      [title, body, image || null, JSON.stringify(tags || []), userId]
-    );
-
-    res.status(201).json({
-      message: "Post created successfully",
-      postId: (result as any).insertId,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Get all posts
-export const getAllPosts = async (_req: Request, res: Response) => {
-  try {
-    const [rows] = await pool.query(`
-      SELECT 
-        posts.id,
-        posts.title,
-        posts.body,
-        posts.image,
-        posts.tags,
-        posts.created_at,
-        users.name AS author
-      FROM posts
-      JOIN users ON users.id = posts.author_id
-      ORDER BY posts.created_at DESC
-    `);
-
-    res.status(200).json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Get a single post by ID
-export const getPostById = async (req: Request, res: Response) => {
-  try {
-    const [rows]: any = await pool.query(
-      `
-      SELECT 
-        posts.id,
-        posts.title,
-        posts.body,
-        posts.image,
-        posts.tags,
-        posts.created_at,
-        users.name AS author
-      FROM posts
-      JOIN users ON users.id = posts.author_id
-      WHERE posts.id = ?
-      `,
-      [req.params.id]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Post not found" });
+  getAllPosts = async (_req: Request, res: Response) => {
+    try {
+      const posts = await this.postService.getAllPosts();
+      res.status(200).json(posts);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
     }
+  };
 
-    res.status(200).json(rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Delete a post
-export const deletePost = async (req: Request, res: Response) => {
-  try {
-    const postId = req.params.id;
-    const userId = (req as any).user.id;
-
-    const [result]: any = await pool.query(
-      `DELETE FROM posts WHERE id = ? AND author_id = ?`,
-      [postId, userId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(403).json({ message: "Not allowed or post not found" });
+  getPostById = async (req: Request, res: Response) => {
+    try {
+      const post = await this.postService.getPostById(Number(req.params.id));
+      res.status(200).json(post);
+    } catch (err: any) {
+      console.error(err);
+      res.status(404).json({ message: err.message || "Server error" });
     }
+  };
 
-    res.status(200).json({ message: "Post deleted successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+  updatePost = async (req: Request, res: Response) => {
+    try {
+      const postId = Number(req.params.id);
+      const userId = req.user!.id;
+      const { title, body, image, tags } = req.body;
 
-// Get posts by the authenticated user
-export const getMyPosts = async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).user.id;
+      await this.postService.updatePost(postId, userId, {
+        title,
+        body,
+        image,
+        tags,
+      });
 
-    const [rows] = await pool.query(
-      `
-      SELECT *
-      FROM posts
-      WHERE author_id = ?
-      ORDER BY created_at DESC
-      `,
-      [userId]
-    );
-
-    res.status(200).json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Update a post
-export const updatePost = async (req: Request, res: Response) => {
-  try {
-    const postId = req.params.id;
-    const userId = (req as any).user.id;
-    const { title, body, image, tags } = req.body;
-
-    const [result]: any = await pool.query(
-      `
-      UPDATE posts
-      SET title = ?, body = ?, image = ?, tags = ?
-      WHERE id = ? AND author_id = ?
-      `,
-      [title, body, image || null, JSON.stringify(tags || []), postId, userId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(403).json({ message: "Not allowed or post not found" });
+      res.status(200).json({ message: "Post updated successfully" });
+    } catch (err: any) {
+      console.error(err);
+      res.status(403).json({ message: err.message || "Server error" });
     }
+  };
 
-    res.status(200).json({ message: "Post updated successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+  deletePost = async (req: Request, res: Response) => {
+    try {
+      const postId = Number(req.params.id);
+      const userId = req.user!.id;
 
-// Upload post image
-export const uploadPostImage = async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      await this.postService.deletePost(postId, userId);
+      res.status(200).json({ message: "Post deleted successfully" });
+    } catch (err: any) {
+      console.error(err);
+      res.status(403).json({ message: err.message || "Server error" });
     }
+  };
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "posts",
-    });
+  getMyPosts = async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const posts = await this.postService.getMyPosts(userId);
+      res.status(200).json(posts);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
+  };
 
-    res.status(200).json({
-      success: true,
-      url: result.secure_url,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Upload failed" });
-  }
-};
+  uploadPostImage = async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const url = await this.postService.uploadImage(req.file.path);
+
+      res.status(200).json({
+        success: true,
+        url,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Upload failed" });
+    }
+  };
+}

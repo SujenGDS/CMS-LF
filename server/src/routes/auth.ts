@@ -1,15 +1,12 @@
-import express from "express";
-import {
-  registerUser,
-  loginUser,
-  getProfile,
-} from "../controller/authController";
+import { Router } from "express";
+import { AuthController } from "../controller/authController";
 import { authMiddleware } from "../middleware/auth";
 
-const router = express.Router();
+const router = Router();
+const authController = new AuthController();
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
-router.get("/profile", authMiddleware, getProfile);
+router.post("/register", authController.registerUser);
+router.post("/login", authController.loginUser);
+router.get("/profile", authMiddleware, authController.getProfile);
 
 export default router;
