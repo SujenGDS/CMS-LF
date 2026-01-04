@@ -10,8 +10,8 @@ export const serverConfig = {
     port: Number(process.env.DB_PORT) || 3306,
   },
   jwt: {
-    secret: process.env.JWT_SECRET || "mysecretkey",
-    expiresIn: process.env.JWT_EXPIRES || "7d",
+    secret: (process.env.JWT_SECRET as string) || "mysecretkey",
+    expiresIn: (process.env.JWT_EXPIRES as string) || "7d",
   },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME as string,

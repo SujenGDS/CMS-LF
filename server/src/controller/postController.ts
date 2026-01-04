@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import pool from "../config/db";
+import cloudinary from "../config/cloudinary";
 
+// Create a new post
 export const createPost = async (req: Request, res: Response) => {
   try {
     const { title, body, image, tags } = req.body;
@@ -28,6 +30,7 @@ export const createPost = async (req: Request, res: Response) => {
   }
 };
 
+// Get all posts
 export const getAllPosts = async (_req: Request, res: Response) => {
   try {
     const [rows] = await pool.query(`
@@ -51,6 +54,7 @@ export const getAllPosts = async (_req: Request, res: Response) => {
   }
 };
 
+// Get a single post by ID
 export const getPostById = async (req: Request, res: Response) => {
   try {
     const [rows]: any = await pool.query(
@@ -81,6 +85,7 @@ export const getPostById = async (req: Request, res: Response) => {
   }
 };
 
+// Delete a post
 export const deletePost = async (req: Request, res: Response) => {
   try {
     const postId = req.params.id;
@@ -102,6 +107,7 @@ export const deletePost = async (req: Request, res: Response) => {
   }
 };
 
+// Get posts by the authenticated user
 export const getMyPosts = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
@@ -123,6 +129,7 @@ export const getMyPosts = async (req: Request, res: Response) => {
   }
 };
 
+// Update a post
 export const updatePost = async (req: Request, res: Response) => {
   try {
     const postId = req.params.id;
@@ -146,5 +153,26 @@ export const updatePost = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Upload post image
+export const uploadPostImage = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "posts",
+    });
+
+    res.status(200).json({
+      success: true,
+      url: result.secure_url,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Upload failed" });
   }
 };

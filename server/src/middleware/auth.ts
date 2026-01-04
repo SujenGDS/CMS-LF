@@ -27,7 +27,7 @@ export const authMiddleware = (
     console.log("Token decoded:", decoded);
 
     (req as any).user = {
-      id: decoded.id, // ✅ now INT
+      id: decoded.id,
     };
 
     next();

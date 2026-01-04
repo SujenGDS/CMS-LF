@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 import pool from "../config/db";
 import { serverConfig } from "../config/serverConfig";
 
 const SECRET_KEY = serverConfig.jwt.secret;
 
+// Register a new user
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
@@ -44,6 +45,7 @@ export const registerUser = async (req: Request, res: Response) => {
   }
 };
 
+// Login user
 export const loginUser = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -63,9 +65,9 @@ export const loginUser = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: user.id }, SECRET_KEY, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign({ id: user.id }, serverConfig.jwt.secret, {
+      expiresIn: serverConfig.jwt.expiresIn,
+    } as SignOptions);
 
     res.status(200).json({
       message: "Login successful",
@@ -82,6 +84,7 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
+// Get user profile
 export const getProfile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
