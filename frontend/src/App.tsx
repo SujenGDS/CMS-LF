@@ -44,7 +44,6 @@ const App: React.FC = () => {
       />
       <Router>
         <Routes>
-          {/* Login Page */}
           <Route
             path="/login"
             element={
@@ -56,7 +55,6 @@ const App: React.FC = () => {
             }
           />
 
-          {/* Home Page - Protected */}
           <Route
             path="/home"
             element={
@@ -66,7 +64,6 @@ const App: React.FC = () => {
             }
           />
 
-          {/* MyPosts Page - Protected */}
           <Route
             path="/myPosts"
             element={
@@ -108,7 +105,6 @@ const App: React.FC = () => {
             element={isLoggedIn ? <Navigate to="/login" /> : <Register />}
           />
 
-          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </Router>
